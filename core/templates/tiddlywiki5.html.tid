@@ -48,5 +48,9 @@ title: $:/core/templates/tiddlywiki5.html
 <div id="bootKernel" style="display:none;">
 {{ $:/boot/boot.js ||$:/core/templates/javascript-tiddler}}
 </div>
+<!--~~ Scripts //CHANGE ~~--> 
+<div id="scripts" style="display:none;">
+{{{ [all[shadows+tiddlers]tag[$:/tags/Script]] ||$:/core/templates/plain-text-tiddler}}}
+</div>
 </body>
 </html>

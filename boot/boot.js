@@ -1496,6 +1496,25 @@ $tw.boot.decryptEncryptedTiddlers = function(callback) {
 
 if($tw.node) {
 
+//CHANGE
+var recursiveLoadFromPath = function(dir, filelist) {
+    var path = path || require('path');
+    var fs = fs || require('fs'),
+        files = fs.readdirSync(dir);
+    filelist = filelist || [];
+    files.forEach(function(file) {
+        if (fs.statSync(path.join(dir, file)).isDirectory()) {
+            filelist = recursiveLoadFromPath(
+                path.join(dir, file),
+                filelist
+            );
+        } else {
+            filelist.push(path.join(dir, file));
+        }
+    });
+    return filelist;
+};
+
 /*
 Load the tiddlers contained in a particular file (and optionally extract fields from the accompanying .meta file) returned as {filepath:,type:,tiddlers:[],hasMetaFile:}
 */
@@ -1647,13 +1666,13 @@ $tw.loadTiddlersFromSpecification = function(filepath,excludeRegExp) {
 		} else {
 			// Process directory specifier
 			var dirPath = path.resolve(filepath,dirSpec.path),
-				files = fs.readdirSync(dirPath),
+				files = recursiveLoadFromPath(dirPath), //CHANGE
 				fileRegExp = new RegExp(dirSpec.filesRegExp || "^.*$"),
 				metaRegExp = /^.*\.meta$/;
 			for(var t=0; t<files.length; t++) {
 				var filename = files[t];
 				if(filename !== "tiddlywiki.files" && !metaRegExp.test(filename) && fileRegExp.test(filename)) {
-					processFile(dirPath + path.sep + filename,dirSpec.isTiddlerFile,dirSpec.fields);
+					processFile(filename,dirSpec.isTiddlerFile,dirSpec.fields);
 				}
 			}
 		}
@@ -1813,12 +1832,12 @@ $tw.loadWikiTiddlers = function(wikiPath,options) {
 			}
 		});
 	}
-	// Load any plugins, themes and languages listed in the wiki info file
+	// Load any plugins, themes and languages listed in the wiki info file //CHANGE
 	$tw.loadPlugins(wikiInfo.plugins,$tw.config.pluginsPath,$tw.config.pluginsEnvVar);
 	$tw.loadPlugins(wikiInfo.themes,$tw.config.themesPath,$tw.config.themesEnvVar);
 	$tw.loadPlugins(wikiInfo.languages,$tw.config.languagesPath,$tw.config.languagesEnvVar);
 	// Load the wiki files, registering them as writable
-	var resolvedWikiPath = path.resolve(wikiPath,$tw.config.wikiTiddlersSubDir);
+	var resolvedWikiPath = path.resolve(wikiPath,wikiInfo.wikiTiddlersSubDir||$tw.config.wikiTiddlersSubDir);
 	$tw.utils.each($tw.loadTiddlersFromPath(resolvedWikiPath),function(tiddlerFile) {
 		if(!options.readOnly && tiddlerFile.filepath) {
 			$tw.utils.each(tiddlerFile.tiddlers,function(tiddler) {
@@ -1831,6 +1850,32 @@ $tw.loadWikiTiddlers = function(wikiPath,options) {
 		}
 		$tw.wiki.addTiddlers(tiddlerFile.tiddlers);
 	});
+
+    // Load the wiki files from folders mentioned in init.json under "includeDirs" //CHANGE
+
+    if (wikiInfo.includeDirs) {
+        wikiInfo.includeDirs.forEach(function(directory) {
+            var resolvedWikiPath = path.resolve(wikiPath, directory);
+            $tw.utils.each(
+                $tw.loadTiddlersFromPath(resolvedWikiPath),
+                function(tiddlerFile) {
+                    if (!options.readOnly && tiddlerFile.filepath) {
+                        $tw.utils.each(tiddlerFile.tiddlers, function(
+                            tiddler
+                        ) {
+                            $tw.boot.files[tiddler.title] = {
+                                filepath: tiddlerFile.filepath,
+                                type: tiddlerFile.type,
+                                hasMetaFile: tiddlerFile.hasMetaFile,
+                            };
+                        });
+                    }
+                    $tw.wiki.addTiddlers(tiddlerFile.tiddlers);
+                }
+            );
+        });
+    }
+
 	// Save the original tiddler file locations if requested
 	var config = wikiInfo.config || {};
 	if(config["retain-original-tiddler-path"]) {
@@ -1845,7 +1890,7 @@ $tw.loadWikiTiddlers = function(wikiPath,options) {
 		$tw.wiki.addTiddler({title: "$:/config/OriginalTiddlerPaths", type: "application/json", text: JSON.stringify(output)});
 	}
 	// Save the path to the tiddlers folder for the filesystemadaptor
-	$tw.boot.wikiTiddlersPath = path.resolve($tw.boot.wikiPath,config["default-tiddler-location"] || $tw.config.wikiTiddlersSubDir);
+	$tw.boot.wikiTiddlersPath = path.resolve($tw.boot.wikiPath,config["default-tiddler-location"] || wikiInfo.wikiTiddlersSubDir || $tw.config.wikiTiddlersSubDir);
 	// Load any plugins within the wiki folder
 	var wikiPluginsPath = path.resolve(wikiPath,$tw.config.wikiPluginsSubDir);
 	if(fs.existsSync(wikiPluginsPath)) {
@@ -1925,7 +1970,7 @@ $tw.boot.startup = function(options) {
 			themesPath: "../themes/",
 			languagesPath: "../languages/",
 			editionsPath: "../editions/",
-			wikiInfo: "./tiddlywiki.info",
+			wikiInfo: './init.json', //CHANGE
 			wikiPluginsSubDir: "./plugins",
 			wikiThemesSubDir: "./themes",
 			wikiLanguagesSubDir: "./languages",

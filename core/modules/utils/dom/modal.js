@@ -53,7 +53,7 @@ Modal.prototype.display = function(title,options) {
 	this.modalCount++;
 	this.adjustPageClass();
 	// Add classes
-	$tw.utils.addClass(wrapper,"tc-modal-wrapper");
+	$tw.utils.addClass(wrapper, options.modalClass ||'tc-modal-wrapper'); //CHANGE
 	$tw.utils.addClass(modalBackdrop,"tc-modal-backdrop");
 	$tw.utils.addClass(modalWrapper,"tc-modal");
 	$tw.utils.addClass(modalHeader,"tc-modal-header");

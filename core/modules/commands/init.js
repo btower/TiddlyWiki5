@@ -47,7 +47,7 @@ Command.prototype.execute = function() {
 		}
 	}
 	// Tweak the tiddlywiki.info to remove any included wikis
-	var packagePath = $tw.boot.wikiPath + "/tiddlywiki.info",
+	var packagePath = $tw.boot.wikiPath + "/init.json", //CHANGE
 		packageJson = JSON.parse(fs.readFileSync(packagePath));
 	delete packageJson.includeWikis;
 	fs.writeFileSync(packagePath,JSON.stringify(packageJson,null,$tw.config.preferences.jsonSpaces));

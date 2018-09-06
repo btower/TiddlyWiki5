@@ -28,7 +28,7 @@ var Command = function(params,commander,callback) {
 
 Command.prototype.execute = function() {
 	if(!$tw.boot.wikiTiddlersPath) {
-		$tw.utils.warning("Warning: Wiki folder '" + $tw.boot.wikiPath + "' does not exist or is missing a tiddlywiki.info file");
+		$tw.utils.warning("Warning: Wiki folder '" + $tw.boot.wikiPath + "' does not exist or is missing a init.json file"); //CHANGE
 	}
 	// Set up server
 	this.server = new Server({
